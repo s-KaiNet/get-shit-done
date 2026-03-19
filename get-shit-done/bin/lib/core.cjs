@@ -260,6 +260,84 @@ function execGit(cwd, args) {
 
 // ─── Common path helpers ──────────────────────────────────────────────────────
 
+/**
+ * Resolve the main worktree root when running inside a git worktree.
+ * In a linked worktree, .planning/ lives in the main worktree, not in the linked one.
+ * Returns the main worktree path, or cwd if not in a worktree.
+ */
+function resolveWorktreeRoot(cwd) {
+  // Check if we're in a linked worktree
+  const gitDir = execGit(cwd, ['rev-parse', '--git-dir']);
+  const commonDir = execGit(cwd, ['rev-parse', '--git-common-dir']);
+
+  if (gitDir.exitCode !== 0 || commonDir.exitCode !== 0) return cwd;
+
+  // In a linked worktree, .git is a file pointing to .git/worktrees/<name>
+  // and git-common-dir points to the main repo's .git directory
+  const gitDirResolved = path.resolve(cwd, gitDir.stdout);
+  const commonDirResolved = path.resolve(cwd, commonDir.stdout);
+
+  if (gitDirResolved !== commonDirResolved) {
+    // We're in a linked worktree — resolve main worktree root
+    // The common dir is the main repo's .git, so its parent is the main worktree root
+    return path.dirname(commonDirResolved);
+  }
+
+  return cwd;
+}
+
+/**
+ * Acquire a file-based lock for .planning/ writes.
+ * Prevents concurrent worktrees from corrupting shared planning files.
+ * Lock is auto-released after the callback completes.
+ */
+function withPlanningLock(cwd, fn) {
+  const lockPath = path.join(planningDir(cwd), '.lock');
+  const lockTimeout = 10000; // 10 seconds
+  const retryDelay = 100;
+  const start = Date.now();
+
+  // Ensure .planning/ exists
+  try { fs.mkdirSync(planningDir(cwd), { recursive: true }); } catch { /* ok */ }
+
+  while (Date.now() - start < lockTimeout) {
+    try {
+      // Atomic create — fails if file exists
+      fs.writeFileSync(lockPath, JSON.stringify({
+        pid: process.pid,
+        cwd,
+        acquired: new Date().toISOString(),
+      }), { flag: 'wx' });
+
+      // Lock acquired — run the function
+      try {
+        return fn();
+      } finally {
+        try { fs.unlinkSync(lockPath); } catch { /* already released */ }
+      }
+    } catch (err) {
+      if (err.code === 'EEXIST') {
+        // Lock exists — check if stale (>30s old)
+        try {
+          const stat = fs.statSync(lockPath);
+          if (Date.now() - stat.mtimeMs > 30000) {
+            fs.unlinkSync(lockPath);
+            continue; // retry
+          }
+        } catch { continue; }
+
+        // Wait and retry
+        spawnSync('sleep', ['0.1'], { stdio: 'ignore' });
+        continue;
+      }
+      throw err;
+    }
+  }
+  // Timeout — force acquire (stale lock recovery)
+  try { fs.unlinkSync(lockPath); } catch { /* ok */ }
+  return fn();
+}
+
 /** Get the .planning directory path */
 function planningDir(cwd) {
   return path.join(cwd, '.planning');
@@ -778,6 +856,8 @@ module.exports = {
   replaceInCurrentMilestone,
   toPosixPath,
   extractOneLinerFromBody,
+  resolveWorktreeRoot,
+  withPlanningLock,
   MODEL_ALIAS_MAP,
   planningDir,
   planningPaths,
