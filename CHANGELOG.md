@@ -29,6 +29,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - `result: blocked` with `blocked_by` tag for tests blocked by external dependencies (server, device, build, third-party)
   - `human_needed` verification items now persist as HUMAN-UAT.md files (trackable across sessions)
   - Phase completion and transition warnings surface verification debt non-blockingly
+- **Advisor mode for discuss-phase** — Spawns parallel research agents during `/gsd:discuss-phase` to evaluate gray areas before user decides. Returns structured comparison tables calibrated to user's vendor philosophy. Activates only when `USER-PROFILE.md` exists (#1211)
 
 ### Changed
 - Test suite consolidated: runtime converters deduplicated, helpers standardized (#1169)
