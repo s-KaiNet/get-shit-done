@@ -134,7 +134,7 @@ Usage: `/gsd:do I want to start a new milestone`
 
 ### Quick Mode
 
-**`/gsd:quick [--full] [--discuss] [--research]`**
+**`/gsd:quick [--full] [--validate] [--discuss] [--research]`**
 Execute small, ad-hoc tasks with GSD guarantees but skip optional agents.
 
 Quick mode uses the same system with a shorter path:
@@ -143,14 +143,16 @@ Quick mode uses the same system with a shorter path:
 - Updates STATE.md tracking (not ROADMAP.md)
 
 Flags enable additional quality steps:
+- `--full` — Complete quality pipeline: discussion + research + plan-checking + verification
+- `--validate` — Plan-checking (max 2 iterations) and post-execution verification only
 - `--discuss` — Lightweight discussion to surface gray areas before planning
 - `--research` — Focused research agent investigates approaches before planning
-- `--full` — Adds plan-checking (max 2 iterations) and post-execution verification
 
-Flags are composable: `--discuss --research --full` gives the complete quality pipeline for a single task.
+Granular flags are composable: `--discuss --research --validate` gives the same as `--full`.
 
 Usage: `/gsd:quick`
-Usage: `/gsd:quick --research --full`
+Usage: `/gsd:quick --full`
+Usage: `/gsd:quick --research --validate`
 Result: Creates `.planning/quick/NNN-slug/PLAN.md`, `.planning/quick/NNN-slug/SUMMARY.md`
 
 ---
