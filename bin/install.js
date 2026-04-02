@@ -3985,8 +3985,14 @@ function configureOpencodePermissions(isGlobal = true) {
     }
   }
 
+  // OpenCode also allows a top-level string permission like "allow".
+  // In that case, path-specific permission entries are unnecessary.
+  if (typeof config.permission === 'string') {
+    return;
+  }
+
   // Ensure permission structure exists
-  if (!config.permission) {
+  if (!config.permission || typeof config.permission !== 'object') {
     config.permission = {};
   }
 
@@ -5207,6 +5213,7 @@ if (process.env.GSD_TEST_MODE) {
     validateHookFields,
     installSdk,
     promptSdk,
+    configureOpencodePermissions,
   };
 } else {
 
