@@ -1330,6 +1330,7 @@ module.exports = {
   stateReplaceField,
   stateReplaceFieldWithFallback,
   writeStateMd,
+  readModifyWriteStateMd,
   updatePerformanceMetricsSection,
   cmdStateLoad,
   cmdStateGet,
